@@ -117,8 +117,8 @@ export function TransitBoard({
         };
         return {
           key: `${hop.from.id}-${hop.to.id}`,
-          duration: payload.duration ?? "—",
-          summary: payload.summary ?? "Transporte público",
+          duration: payload.duration || "—",
+          summary: payload.summary || "",
         };
       }),
     ).then((list) => {

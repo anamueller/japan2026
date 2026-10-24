@@ -9,8 +9,10 @@ export type TransitHop = {
   summary: string;
 };
 
+export type TransitMode = "walk" | "train" | "bus";
+
 export type TransitStep = {
-  kind: "walk" | "transit";
+  kind: TransitMode;
   title: string;
   detail: string;
 };
@@ -19,13 +21,56 @@ export type TransitLeg = {
   duration: string;
   summary: string;
   steps: TransitStep[];
+  modes: TransitMode[];
 };
+
+const BUS_TYPES = new Set(["BUS", "INTERCITY_BUS", "TROLLEYBUS"]);
+
+export function vehicleMode(type?: string): TransitMode {
+  const value = (type ?? "").toUpperCase();
+  if (!value) return "train";
+  return BUS_TYPES.has(value) ? "bus" : "train";
+}
+
+export function inferLegMode(steps: TransitStep[]): TransitMode {
+  return inferLegModes(steps)[0] ?? "walk";
+}
+
+export function inferLegModes(steps: TransitStep[]): TransitMode[] {
+  const modes: TransitMode[] = [];
+  for (const step of steps) {
+    if (step.kind === "walk") continue;
+    if (!modes.includes(step.kind)) modes.push(step.kind);
+  }
+  return modes.length ? modes : ["walk"];
+}
+
+export function hasPublicTransit(steps: TransitStep[]): boolean {
+  return steps.some((step) => step.kind !== "walk");
+}
+
+export function preferredRoute<T extends { steps: TransitStep[]; seconds: number }>(
+  routes: T[],
+): T | undefined {
+  const ranked = [...routes].sort(
+    (left, right) => transitRank(left.steps) - transitRank(right.steps) || left.seconds - right.seconds,
+  );
+  const best = ranked[0];
+  if (!best || !hasPublicTransit(best.steps)) return undefined;
+  return best;
+}
+
+function transitRank(steps: TransitStep[]): number {
+  if (steps.some((step) => step.kind === "train")) return 0;
+  if (steps.some((step) => step.kind === "bus")) return 1;
+  return 2;
+}
 
 type RawStep = {
   travelMode?: string;
   staticDuration?: string;
   transitDetails?: {
-    transitLine?: { name?: string; nameShort?: string };
+    transitLine?: { name?: string; nameShort?: string; vehicle?: { type?: string } };
     stopDetails?: {
       departureStop?: { name?: string };
       arrivalStop?: { name?: string };
@@ -57,37 +102,49 @@ export function clockFromTimestamp(value: unknown): string {
 
 export function parseTransitSteps(legs: unknown): TransitStep[] {
   if (!Array.isArray(legs)) return [];
-  const steps = legs.flatMap((leg) => {
+  const raw = legs.flatMap((leg) => {
     if (!leg || typeof leg !== "object" || !("steps" in leg)) return [];
-    const raw = (leg as { steps?: unknown }).steps;
-    return Array.isArray(raw) ? (raw as RawStep[]) : [];
+    const list = (leg as { steps?: unknown }).steps;
+    return Array.isArray(list) ? (list as RawStep[]) : [];
   });
-  return steps
-    .map((step) => {
-      const details = step.transitDetails;
-      if ((step.travelMode === "TRANSIT" || details) && details) {
-        const line =
-          details.transitLine?.nameShort || details.transitLine?.name || "Transporte";
-        const dep = details.stopDetails?.departureStop?.name ?? "";
-        const arr = details.stopDetails?.arrivalStop?.name ?? "";
-        const t0 = clockFromTimestamp(details.stopDetails?.departureTime);
-        const t1 = clockFromTimestamp(details.stopDetails?.arrivalTime);
-        return {
-          kind: "transit" as const,
-          title: [line, t0].filter(Boolean).join(" · "),
-          detail: [dep && arr ? `${dep} → ${arr}` : dep || arr, t1 ? `chega ${t1}` : ""]
-            .filter(Boolean)
-            .join(" · "),
-        };
-      }
-      const seconds = parseDuration(step.staticDuration);
-      return {
-        kind: "walk" as const,
-        title: seconds ? `A pé · ${formatDurationSeconds(seconds).replace(/^0h /, "")}` : "A pé",
-        detail: "",
-      };
-    })
-    .filter((step) => step.title);
+  const parsed: TransitStep[] = [];
+  let walkSeconds = 0;
+  function flushWalk() {
+    const title = walkTitle(walkSeconds);
+    walkSeconds = 0;
+    if (title) parsed.push({ kind: "walk", title, detail: "" });
+  }
+  for (const step of raw) {
+    const details = step.transitDetails;
+    if (step.travelMode === "TRANSIT" || details) {
+      flushWalk();
+      const line =
+        details?.transitLine?.nameShort || details?.transitLine?.name || "Metrô / trem";
+      const dep = details?.stopDetails?.departureStop?.name ?? "";
+      const arr = details?.stopDetails?.arrivalStop?.name ?? "";
+      const t0 = clockFromTimestamp(details?.stopDetails?.departureTime);
+      const t1 = clockFromTimestamp(details?.stopDetails?.arrivalTime);
+      parsed.push({
+        kind: vehicleMode(details?.transitLine?.vehicle?.type),
+        title: [line, t0].filter(Boolean).join(" · "),
+        detail: [dep && arr ? `${dep} → ${arr}` : dep || arr, t1 ? `chega ${t1}` : ""]
+          .filter(Boolean)
+          .join(" · "),
+      });
+      continue;
+    }
+    walkSeconds += parseDuration(step.staticDuration);
+  }
+  flushWalk();
+  if (parsed.length && parsed.every((step) => step.kind === "walk")) return [];
+  return parsed.filter((step) => step.title);
+}
+
+function walkTitle(seconds: number): string | null {
+  if (seconds < 30) return null;
+  const text = formatDurationSeconds(seconds).replace(/^0h /, "");
+  if (!text || text === "0h") return null;
+  return `A pé · ${text}`;
 }
 
 const FALLBACK: Record<string, { seconds: number; summary: string }> = {
@@ -100,13 +157,8 @@ const FALLBACK: Record<string, { seconds: number; summary: string }> = {
 export function fallbackHop(fromId: string, toId: string): {
   seconds: number;
   summary: string;
-} {
-  return (
-    FALLBACK[`${fromId}>${toId}`] ?? {
-      seconds: 10800,
-      summary: "Transporte público",
-    }
-  );
+} | null {
+  return FALLBACK[`${fromId}>${toId}`] ?? null;
 }
 
 export function formatDurationSeconds(seconds: number): string {
@@ -117,6 +169,13 @@ export function formatDurationSeconds(seconds: number): string {
 
 export function parseDuration(iso: string | undefined): number {
   if (!iso) return 0;
-  const match = iso.match(/^(\d+)s$/);
-  return match ? Number(match[1]) : 0;
+  const seconds = iso.match(/^(\d+(?:\.\d+)?)s$/);
+  if (seconds) return Number(seconds[1]);
+  const iso8601 = iso.match(/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?$/i);
+  if (!iso8601) return 0;
+  return (
+    Number(iso8601[1] ?? 0) * 3600 +
+    Number(iso8601[2] ?? 0) * 60 +
+    Number(iso8601[3] ?? 0)
+  );
 }
