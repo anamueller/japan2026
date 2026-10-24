@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { MapPinned, X } from "lucide-react";
 import { ItineraryPanel } from "@/components/ItineraryPanel";
 import { MapPanel, type MapView } from "@/components/MapPanel";
 import { eachDate } from "@/lib/dates";
@@ -38,6 +40,7 @@ export function Dashboard({
   onMapView,
   onOptimizing,
 }: DashboardProps) {
+  const [showMap, setShowMap] = useState(false);
   const dates = eachDate(city.start, city.end);
   const cityItems = attractions.filter((item) => item.cityId === city.id);
   const routeStart = stay
@@ -150,6 +153,17 @@ export function Dashboard({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+      <div className={`${showMap ? "hidden lg:flex" : "flex"} min-h-0 min-w-0 flex-1 flex-col`}>
+        <div className="shrink-0 border-b border-slate-200 bg-white px-4 py-2 lg:hidden">
+          <button
+            type="button"
+            onClick={() => setShowMap(true)}
+            className="inline-flex items-center gap-1 rounded-full border border-rose-100 px-3 py-1.5 text-xs font-medium text-stone-700"
+          >
+            <MapPinned className="h-3.5 w-3.5" />
+            Ver mapa
+          </button>
+        </div>
       <ItineraryPanel
         cityName={city.name}
         cityId={city.id}
@@ -165,6 +179,20 @@ export function Dashboard({
         onStartFrom={startFrom}
         onReorder={reorder}
       />
+      </div>
+      <div
+        className={`${
+          showMap ? "relative min-h-0 flex-1" : "hidden"
+        } lg:block lg:h-auto lg:w-[46%] lg:shrink-0`}
+      >
+        <button
+          type="button"
+          aria-label="Fechar mapa"
+          onClick={() => setShowMap(false)}
+          className="absolute top-3 right-3 z-[1001] rounded-full bg-white p-2 shadow lg:hidden"
+        >
+          <X className="h-4 w-4" />
+        </button>
       <MapPanel
         attractions={mapAttractions}
         selectedId={selectedId}
@@ -172,9 +200,11 @@ export function Dashboard({
         dates={dates}
         cityName={city.name}
         routeStart={routeStart}
+        className="relative h-full min-h-64 w-full"
         onSelect={selectPin}
         onViewChange={changeView}
       />
+      </div>
     </div>
   );
 }

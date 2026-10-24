@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { BottomNav } from "@/components/BottomNav";
 import { CitySetup } from "@/components/CitySetup";
 import { Dashboard } from "@/components/Dashboard";
+import { DayGuide } from "@/components/DayGuide";
 import { OverviewPanel } from "@/components/OverviewPanel";
 import { Sidebar, type AppView } from "@/components/Sidebar";
 import { TopBar } from "@/components/TopBar";
+import { buildTripDays, resolveGuideDate } from "@/lib/days";
 import { daysUntil } from "@/lib/dates";
 import {
   dayAttractions,
@@ -27,7 +30,7 @@ import {
 const initialAttractions = [...dayAttractions, ...ideaCards];
 
 export function AppShell() {
-  const [view, setView] = useState<AppView>({ kind: "overview" });
+  const [view, setView] = useState<AppView>({ kind: "day", date: "" });
   const [cities, setCities] = useState<CityStay[]>(defaultCities);
   const [flights, setFlights] = useState<Flight[]>(defaultFlights);
   const [stays, setStays] = useState<Stay[]>(defaultStays);
@@ -35,7 +38,6 @@ export function AppShell() {
   const [selectedId, setSelectedId] = useState(dayAttractions[0]?.id ?? "");
   const [mapView, setMapView] = useState<"macro" | string>("macro");
   const [optimizing, setOptimizing] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [ready, setReady] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
   const skipShare = useRef(false);
@@ -104,8 +106,13 @@ export function AppShell() {
     };
   }, [ready]);
 
+  const tripDays = buildTripDays(cities, stays, attractions);
+  const today = resolveGuideDate(tripDays);
   const city =
     view.kind === "city" ? cities.find((item) => item.id === view.id) : undefined;
+  const openDate =
+    view.kind === "day" && tripDays.some((day) => day.date === view.date) ? view.date : today;
+  const openDay = view.kind === "day" ? tripDays.find((day) => day.date === openDate) : undefined;
   const countdownStart = cities[0]?.start ?? "2026-11-10";
 
   function openCity(id: string) {
@@ -121,25 +128,33 @@ export function AppShell() {
       return;
     }
     setView(next);
-    setMenuOpen(false);
   }
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-white">
-      <TopBar daysLeft={daysUntil(countdownStart)} onMenu={() => setMenuOpen((open) => !open)} />
+      <TopBar daysLeft={daysUntil(countdownStart)} />
       {shareError ? (
         <p className="shrink-0 bg-red-50 px-3 py-1 text-center text-xs text-red-700">
           Não deu para gravar o roteiro compartilhado: {shareError}
         </p>
       ) : null}
-      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        <Sidebar
-          cities={cities}
-          view={view}
-          open={menuOpen}
-          onView={changeView}
-          onClose={() => setMenuOpen(false)}
-        />
+      <div className="flex min-h-0 flex-1 flex-col pb-16 lg:flex-row lg:pb-0">
+        <Sidebar cities={cities} today={today} view={view} onView={changeView} />
+        {openDay && (
+          <DayGuide
+            day={openDay}
+            days={tripDays}
+            onDate={(date) => setView({ kind: "day", date })}
+            onPlan={
+              openDay.base
+                ? () => {
+                    const baseId = openDay.base?.id;
+                    if (baseId) openCity(baseId);
+                  }
+                : undefined
+            }
+          />
+        )}
         {view.kind === "overview" && (
           <OverviewPanel
             flights={flights}
@@ -148,7 +163,7 @@ export function AppShell() {
             onStays={setStays}
           />
         )}
-        {view.kind === "cities" && (
+        {view.kind === "bases" && (
           <CitySetup
             cities={cities}
             onChange={setCities}
@@ -170,6 +185,7 @@ export function AppShell() {
           />
         )}
       </div>
+      <BottomNav view={view} today={today} onView={changeView} />
     </div>
   );
 }

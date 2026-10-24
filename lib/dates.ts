@@ -12,7 +12,13 @@ export function formatDateShort(iso: string): string {
   return `${WEEKDAYS[weekday]} ${Number(day)} de ${MONTHS[Number(month) - 1]}`;
 }
 
-function calendarDate(from: Date, timeZone: string): string {
+const WEEKDAY_LONG = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+
+export function formatWeekday(iso: string): string {
+  return WEEKDAY_LONG[new Date(`${iso}T00:00:00Z`).getUTCDay()] ?? "";
+}
+
+export function calendarDate(from: Date, timeZone: string): string {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone,
     year: "numeric",

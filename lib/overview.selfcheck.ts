@@ -3,13 +3,14 @@ import { climateLabel, weatherEmoji, shiftYear, mapDaily } from "@/lib/weather";
 import { cacheGet, cacheKey, cacheSet } from "@/lib/google-cache";
 import { parseTrip } from "@/lib/trip-store";
 import { airportCountry, applyStayEnrichment, buildFlightDays, defaultCities, defaultFlights, defaultStays, nextConnection, stayDisplayName, travelerHeader } from "@/lib/trip";
-import { daysUntil, formatClock, formatDate, formatDateShort, formatDayMonth, formatNumericDate, formatStayRange } from "@/lib/dates";
+import { daysUntil, formatClock, formatDate, formatDateShort, formatDayMonth, formatNumericDate, formatStayRange, formatWeekday } from "@/lib/dates";
 
 if (weatherEmoji(0) !== "☀️") throw new Error("clear sky emoji");
 if (shiftYear("2026-11-10", 2025) !== "2025-11-10") throw new Error("shiftYear");
 if (formatClock("2026-11-08T22:40") !== "22:40") throw new Error("clock");
 if (formatDate("2026-11-10") !== "10 de nov. de 2026") throw new Error("formatDate");
 if (formatDateShort("2026-11-10") !== "ter. 10 de nov.") throw new Error("formatDateShort");
+if (formatWeekday("2026-11-10") !== "terça") throw new Error("weekday");
 if (daysUntil("2026-11-10", new Date("2026-09-30T23:00:00-03:00")) !== 41) {
   throw new Error("daysUntil sao paulo");
 }
