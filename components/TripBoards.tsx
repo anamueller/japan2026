@@ -16,11 +16,15 @@ export function WeatherBoard({ cities }: { cities: CityStay[] }) {
     let live = true;
     Promise.all(
       cities.map(async (city) => {
-        const response = await fetch(
-          `/api/weather?lat=${city.lat}&lng=${city.lng}&start=${city.start}&end=${city.end}`,
-        );
-        const payload = (await response.json()) as { days?: WeatherDay[] };
-        return { city, days: payload.days ?? [] };
+        try {
+          const response = await fetch(
+            `/api/weather?lat=${city.lat}&lng=${city.lng}&start=${city.start}&end=${city.end}`,
+          );
+          const payload = (await response.json()) as { days?: WeatherDay[] };
+          return { city, days: payload.days ?? [] };
+        } catch {
+          return { city, days: [] };
+        }
       }),
     ).then((list) => {
       if (live) setRows(list);

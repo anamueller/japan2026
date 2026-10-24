@@ -4,6 +4,7 @@ import { useState } from "react";
 import { MapPinned, X } from "lucide-react";
 import { ItineraryPanel } from "@/components/ItineraryPanel";
 import { MapPanel, type MapView } from "@/components/MapPanel";
+import { WeatherBoard } from "@/components/TripBoards";
 import { eachDate } from "@/lib/dates";
 import { fetchGoogleRoute } from "@/lib/google-route";
 import {
@@ -163,6 +164,9 @@ export function Dashboard({
             <MapPinned className="h-3.5 w-3.5" />
             Ver mapa
           </button>
+        </div>
+        <div className="shrink-0 overflow-x-auto px-4 py-3 md:px-6">
+          <WeatherBoard cities={[city]} />
         </div>
       <ItineraryPanel
         cityName={city.name}

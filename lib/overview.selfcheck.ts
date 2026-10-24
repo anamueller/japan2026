@@ -1,5 +1,5 @@
 import { formatDurationSeconds, fallbackHop } from "@/lib/transit";
-import { climateLabel, weatherEmoji, shiftYear, mapDaily } from "@/lib/weather";
+import { climateLabel, inForecastWindow, weatherEmoji, shiftYear, mapDaily } from "@/lib/weather";
 import { cacheGet, cacheKey, cacheSet } from "@/lib/google-cache";
 import { parseTrip } from "@/lib/trip-store";
 import { airportCountry, applyStayEnrichment, buildFlightDays, defaultCities, defaultFlights, defaultStays, nextConnection, stayDisplayName, travelerHeader } from "@/lib/trip";
@@ -7,6 +7,12 @@ import { daysUntil, formatClock, formatDate, formatDateShort, formatDayMonth, fo
 
 if (weatherEmoji(0) !== "☀️") throw new Error("clear sky emoji");
 if (shiftYear("2026-11-10", 2025) !== "2025-11-10") throw new Error("shiftYear");
+if (inForecastWindow("2026-11-10", "2026-11-14", new Date("2026-10-24T12:00:00+09:00"))) {
+  throw new Error("november is outside forecast");
+}
+if (!inForecastWindow("2026-10-24", "2026-10-26", new Date("2026-10-24T12:00:00+09:00"))) {
+  throw new Error("near dates use forecast");
+}
 if (formatClock("2026-11-08T22:40") !== "22:40") throw new Error("clock");
 if (formatDate("2026-11-10") !== "10 de nov. de 2026") throw new Error("formatDate");
 if (formatDateShort("2026-11-10") !== "ter. 10 de nov.") throw new Error("formatDateShort");

@@ -1,3 +1,5 @@
+import { calendarDate } from "@/lib/dates";
+
 export type WeatherDay = {
   date: string;
   emoji: string;
@@ -35,6 +37,14 @@ export function weatherEmoji(code: number): string {
 
 export function shiftYear(iso: string, year: number): string {
   return `${year}${iso.slice(4)}`;
+}
+
+export function inForecastWindow(start: string, end: string, from = new Date()): boolean {
+  if (!start || !end || end < start) return false;
+  const today = calendarDate(from, "Asia/Tokyo");
+  const limit = new Date(`${today}T00:00:00Z`);
+  limit.setUTCDate(limit.getUTCDate() + 15);
+  return end <= limit.toISOString().slice(0, 10);
 }
 
 export function mapDaily(payload: {
