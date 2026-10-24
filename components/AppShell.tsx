@@ -145,14 +145,7 @@ export function AppShell() {
             day={openDay}
             days={tripDays}
             onDate={(date) => setView({ kind: "day", date })}
-            onPlan={
-              openDay.base
-                ? () => {
-                    const baseId = openDay.base?.id;
-                    if (baseId) openCity(baseId);
-                  }
-                : undefined
-            }
+            onPlan={openCity}
           />
         )}
         {view.kind === "overview" && (

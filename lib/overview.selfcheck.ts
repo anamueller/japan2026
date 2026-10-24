@@ -45,9 +45,10 @@ const withGap = buildFlightDays([
 if (!withGap.some((day) => day.ellipsis)) throw new Error("missing ellipsis");
 
 const hop = fallbackHop("tokyo", "kyoto");
-if (formatDurationSeconds(hop.seconds) !== "2h 12min") {
-  throw new Error(formatDurationSeconds(hop.seconds));
+if (!hop || formatDurationSeconds(hop.seconds) !== "2h 12min") {
+  throw new Error(formatDurationSeconds(hop?.seconds ?? 0));
 }
+if (fallbackHop("senso-ji", "shibuya-sky")) throw new Error("no fake 3h hop");
 
 const mapped = mapDaily({
   daily: {
