@@ -34,6 +34,7 @@ type MapPanelProps = {
   routeStart?: RouteStart | null;
   onSelect: (id: string) => void;
   onViewChange: (view: MapView) => void;
+  className?: string;
 };
 
 export function MapPanel({
@@ -45,6 +46,7 @@ export function MapPanel({
   routeStart,
   onSelect,
   onViewChange,
+  className,
 }: MapPanelProps) {
   const [route, setRoute] = useState<LatLng[]>([]);
   const fitKey = view === "macro" ? "macro" : `day-${view}`;
@@ -67,7 +69,12 @@ export function MapPanel({
   }, [pointsKey]);
 
   return (
-    <aside className="relative h-64 w-full shrink-0 overflow-hidden bg-slate-200 lg:h-full lg:w-[46%]">
+    <aside
+      className={
+        className ??
+        "relative h-64 w-full shrink-0 overflow-hidden bg-slate-200 lg:h-full lg:w-[46%]"
+      }
+    >
       <div className="absolute inset-0">
         {googleMapsKey ? (
           <GoogleDayMap

@@ -1,60 +1,42 @@
 "use client";
 
-import {
-  FileText,
-  LayoutDashboard,
-  MapPin,
-  Plane,
-} from "lucide-react";
+import { BedDouble, LayoutDashboard, Sun } from "lucide-react";
 import { CountryFlag } from "@/components/CountryFlag";
 import type { CityStay } from "@/lib/trip";
 
 export type AppView =
   | { kind: "overview" }
-  | { kind: "cities" }
+  | { kind: "day"; date: string }
+  | { kind: "bases" }
   | { kind: "city"; id: string };
 
 type SidebarProps = {
   cities: CityStay[];
+  today: string;
   view: AppView;
-  open: boolean;
   onView: (view: AppView) => void;
-  onClose: () => void;
 };
 
-export function Sidebar({ cities, view, open, onView, onClose }: SidebarProps) {
+export function Sidebar({ cities, today, view, onView }: SidebarProps) {
   return (
-    <>
-      {open ? (
-        <button
-          type="button"
-          aria-label="Fechar menu"
-          onClick={onClose}
-          className="fixed inset-0 z-40 bg-stone-900/40 lg:hidden"
-        />
-      ) : null}
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 max-w-[80vw] flex-col overflow-y-auto bg-jp-ink px-4 py-5 text-rose-100 transition-transform lg:static lg:z-0 lg:w-56 lg:max-w-none lg:translate-x-0 ${
-          open ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
+    <aside className="hidden w-56 shrink-0 flex-col overflow-y-auto bg-jp-ink px-4 py-5 text-rose-100 lg:flex">
       <p className="mb-6 flex items-center gap-2 px-2 text-sm font-semibold tracking-wide text-white">
         Trip: Japan
         <CountryFlag iso="JP" className="h-3.5 w-[1.3rem]" title="Japão" />
       </p>
       <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto text-sm">
         <NavItem
-          icon={LayoutDashboard}
-          label="Visão Geral"
-          active={view.kind === "overview"}
-          onClick={() => onView({ kind: "overview" })}
+          icon={Sun}
+          label="Dia"
+          active={view.kind === "day"}
+          onClick={() => onView({ kind: "day", date: view.kind === "day" ? view.date : today })}
         />
         <div>
           <NavItem
-            icon={MapPin}
-            label="Cidades"
-            active={view.kind === "cities"}
-            onClick={() => onView({ kind: "cities" })}
+            icon={BedDouble}
+            label="Bases"
+            active={view.kind === "bases" || view.kind === "city"}
+            onClick={() => onView({ kind: "bases" })}
           />
           <ul className="mt-1 ml-9 flex flex-col gap-1 text-rose-200/70">
             {cities.map((city) => (
@@ -63,9 +45,7 @@ export function Sidebar({ cities, view, open, onView, onClose }: SidebarProps) {
                   type="button"
                   onClick={() => onView({ kind: "city", id: city.id })}
                   className={`w-full rounded-md px-2 py-1 text-left transition hover:bg-white/5 hover:text-white ${
-                    view.kind === "city" && view.id === city.id
-                      ? "font-medium text-white"
-                      : ""
+                    view.kind === "city" && view.id === city.id ? "font-medium text-white" : ""
                   }`}
                 >
                   {city.name}
@@ -74,26 +54,14 @@ export function Sidebar({ cities, view, open, onView, onClose }: SidebarProps) {
             ))}
           </ul>
         </div>
-        <div>
-          <NavItem icon={FileText} label="Documentos" active={false} />
-          <ul className="mt-1 ml-9 flex flex-col gap-1 text-rose-200/70">
-            <li>
-              <span className="inline-flex w-full items-center gap-2 rounded-md px-2 py-1">
-                <FileText className="h-3.5 w-3.5" />
-                PDFs
-              </span>
-            </li>
-            <li>
-              <span className="inline-flex w-full items-center gap-2 rounded-md px-2 py-1">
-                <Plane className="h-3.5 w-3.5" />
-                Voos
-              </span>
-            </li>
-          </ul>
-        </div>
+        <NavItem
+          icon={LayoutDashboard}
+          label="Viagem"
+          active={view.kind === "overview"}
+          onClick={() => onView({ kind: "overview" })}
+        />
       </nav>
     </aside>
-    </>
   );
 }
 
